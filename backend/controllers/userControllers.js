@@ -2,12 +2,19 @@ const { json } = require("sequelize");
 const userServices = require("../services/userServices");
 const jwt = require("jsonwebtoken");
 const bcrypt = require("bcrypt");
+
 class UsuarioController {
   async login(req, res) {
     try {
       const { email, password } = req.body;
       const respuestap = await userServices.login(email);
+
+      if (!respuestap) {
+        return res.status(404).json({ mensaje: "Usuario no encontrado" });
+      }
+
       const resp = await bcrypt.compare(password, respuestap.password);
+
       if (resp) {
         const token = jwt.sign(
           { id: respuestap.id, email: respuestap.email },
@@ -15,13 +22,14 @@ class UsuarioController {
           { expiresIn: "1h" }
         );
         console.log(token);
-        res.json({ mensaje: "Login exitoso", token: token });
+        return res.json({ mensaje: "Login exitoso", token: token });
       } else {
-        console.log("contraseña incorrecta");
+        console.log("Contraseña incorrecta");
+        return res.status(400).json({ mensaje: "Contraseña incorrecta" });
       }
-      res.json({ respuesta: resp });
     } catch (e) {
-      res.json({ mensaje: "error en el login", e });
+      console.error(e);
+      return res.status(500).json({ mensaje: "Error en el login", e });
     }
   }
 
@@ -34,16 +42,14 @@ class UsuarioController {
         email,
         hashpassword
       );
-      console.log(
-        "asssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssss",
-        respuestaUser
-      );
-      res.json(respuestaUser);
+
+      console.log("Respuesta de creación de usuario:", respuestaUser);
+      return res.json(respuestaUser);
     } catch (e) {
-      res.json({ mensaje: "error en el servicio", e });
+      console.error(e);
+      return res.status(500).json({ mensaje: "Error en el servicio", e });
     }
   }
-  // const nuevoUsuario = await usuarioService.createUsuario(req.body);
-  // res.status(201).json(nuevoUsuario);
 }
+
 module.exports = new UsuarioController();
